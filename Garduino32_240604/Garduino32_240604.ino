@@ -111,6 +111,8 @@ int startState = 0;
 int counter = 42;
 int counter2 = 42;
 bool wateringState = false;
+bool wateredToday = false;
+bool manualTrigger = false;
 bool running = false;
 char buffer[18];
 
@@ -151,17 +153,36 @@ plantNumber myPlant2 = {"2: Azalea", 6, 60, 2};
 
 void printLocalTime(void)
 {
-
   if(!getLocalTime(&timeinfo)){
     Serial.println("No time available (yet)");
     return;
   }
   tm* myTime = &timeinfo;
 
+  time_t rawtime;
+  struct tm * timeinfo;
+  char buffer[15];
+
+  time(&rawtime);
+  timeinfo = localtime (&rawtime);
+
+  //strftime (buffer, 80, "%I:%M%p", timeinfo);
+  strftime (buffer, 15, "%H%M%S", timeinfo);
+  puts(buffer);
+
+  int val = atoi(buffer);
+  printf("This %d simple \t", val);
+
+  // if the time is between 11:59:53PM and 6secs later(for readtime) reset watered today bool check
+  if (val >= 235953 && val <= 235959)
+  {
+    wateredToday = false;
+  }
+
   //Serial.println(&timeinfo, "%A, %B %d %Y %H:%M:%S");
   Serial.println(myTime, "%H:%M \n");
-
 }
+
 
 // Callback function (get's called when time adjusts via NTP)
 void timeavailable(struct timeval *t)
@@ -323,11 +344,16 @@ void checkPlantState(void)  //=============================================
     selector = 1;
     menuState = true;
     wateringState = true;
-    waterStart();
-    delay(wateringDelay1);
-    wateringState = false;
-    myPlant1.plantState = 2;
-    waterEnd();
+    if(!wateredToday || manualTrigger)
+    {
+      waterStart();
+      delay(wateringDelay1);
+      wateringState = false;
+      myPlant1.plantState = 2;
+      waterEnd();
+      wateredToday = true;
+      manualTrigger = false;
+    }
 
   }
     if(myPlant2.plantState == 1)
@@ -335,11 +361,16 @@ void checkPlantState(void)  //=============================================
     selector = 2;
     menuState = true;
     wateringState = true;
-    waterStart();
-    delay(wateringDelay2);
-    wateringState = false;
-    myPlant2.plantState = 2;
-    waterEnd();
+    if(!wateredToday || manualTrigger)
+    {
+      waterStart();
+      delay(wateringDelay2);
+      wateringState = false;
+      myPlant2.plantState = 2;
+      waterEnd();
+      wateredToday = true;
+      manualTrigger = false;
+    }
   }
 }
 
@@ -610,15 +641,19 @@ void startCycleActive(int counter, int counter2, byte k)
   {
     u8g2.drawBox(91, 46 - counter, 8, counter);
     //wateringState = true;
-    waterStart();
+    manualTrigger = true;
     running = true;
+    waterStart();
+    
   }
   if(selector == 2)
   {
     u8g2.drawBox(91, 46 - counter2, 8, counter);
     //wateringState = true;
-    waterStart();
+    manualTrigger = true;
     running = true;
+    waterStart();
+    
   }
   /*
     if(millis() - wateringMillis > 3000) {
@@ -935,6 +970,8 @@ void loop(void)
     }
   }
 
+
+
   if(currentMillis - readingPreviousMillis >= readingDelay) {
     
     readingPreviousMillis = currentMillis;
@@ -945,12 +982,15 @@ void loop(void)
     int sensorVal2 = analogRead(sensorPin2);
     moisture = map(sensorVal1,  1000, 3000, 100, 0);
     moisture2 = map(sensorVal2, 1000, 3000, 100, 0);
-    //Serial.print(moisture);
+    
     Serial.print(sensorVal1);
     Serial.print("\t");
-    //Serial.print(moisture2);
+    Serial.print(moisture);
+    Serial.print("\t");
     Serial.print(sensorVal2);
     Serial.print("\t");
+    Serial.print(moisture2);
+    Serial.print("\n");
 
 
     printLocalTime();     // it will take some time to sync time :)
