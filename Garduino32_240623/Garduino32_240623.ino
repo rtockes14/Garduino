@@ -42,7 +42,6 @@
 #define sensorPin3 16
 #define DHTTYPE DHT22
 
-#define DEVICE_ID 2341
 
 
 
@@ -130,6 +129,7 @@ unsigned long currentMillis = 0;
 unsigned long animationPreviousMillis = 0;
 unsigned long readingPreviousMillis = 0;
 unsigned long postPreviousMillis = 0;
+unsigned long postInfoPreviousMillis = 0;
 unsigned long menuPreviousMillis = 0;
 
 const int animationDelay = 200;
@@ -142,12 +142,11 @@ const int sendDataDelay = 5000;
 String serverName = "https://bluegarden-6f0bc98539d7.herokuapp.com/api/plants";
 String serverSchedule = "https://bluegarden-6f0bc98539d7.herokuapp.com/api/device_info";
 
+String DEVICE_ID = "2341";
+
 struct tm timeinfo;
 
 DHT dht(sensorPin3, DHTTYPE);
-
-//byte hour;
-//byte minutes;
 
 char DaysoftheWeek[7][5] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
 //char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
@@ -704,92 +703,92 @@ void menuStateReturn(void)
 }
 
 
-// void postData(void)
-// {
-//   if(currentMillis - postPreviousMillis >= 60000) {
-//     postPreviousMillis = currentMillis;
-//     HTTPClient http;
+void postData(void)
+{
+   if(currentMillis - postPreviousMillis >= 60000) {
+     postPreviousMillis = currentMillis;
+    HTTPClient http;
 
-//     String serverPath = serverName; 
+    String serverPath = serverName; 
     
-//     // Your Domain name with URL path or IP address with path
-//     http.begin(serverPath.c_str());
-//     http.addHeader("Content-Type", "application/json");
+    // Your Domain name with URL path or IP address with path
+    http.begin(serverPath.c_str());
+    http.addHeader("Content-Type", "application/json");
     
-//     // If you need Node-RED/server authentication, insert user and password below
-//     //http.setAuthorization("REPLACE_WITH_SERVER_USERNAME", "REPLACE_WITH_SERVER_PASSWORD");
-//     StaticJsonDocument<200> doc;
-//     // Add values in the document
-//     //
-//     doc["user_id"] = 5;
-//     doc["temperature"] = temperatureVal;
-//     doc["plant1_name"] = myPlant1.name;
-//     doc["plant1_moisture"] = moisture;
-//     doc["plant2_name"] = myPlant2.name;
-//     doc["plant2_moisture"] = moisture2;
+    // If you need Node-RED/server authentication, insert user and password below
+    //http.setAuthorization("REPLACE_WITH_SERVER_USERNAME", "REPLACE_WITH_SERVER_PASSWORD");
+    StaticJsonDocument<200> doc;
+    // Add values in the document
+    //
+    doc["user_id"] = 5;
+    doc["temperature"] = temperatureVal;
+    doc["plant1_name"] = myPlant1.name;
+    doc["plant1_moisture"] = moisture;
+    doc["plant2_name"] = myPlant2.name;
+    doc["plant2_moisture"] = moisture2;
     
-//     String requestBody;
-//     serializeJson(doc, requestBody);
+    String requestBody;
+    serializeJson(doc, requestBody);
     
-//     int httpResponseCode = http.POST(requestBody);
-
-    
-//     if (httpResponseCode>0) {
-//       Serial.print("HTTP Response code: ");
-//       Serial.println(httpResponseCode);
-//       String payload = http.getString();
-//       Serial.println(payload);
-//     }
-//     else {
-//       Serial.print("Error code: ");
-//       Serial.println(httpResponseCode);
-//     }
-//     // Free resources
-//     http.end();
-//   }
-// }
-
-
-
-// void retrieveSchedule(void)
-// {
-//   if(currentMillis - postPreviousMillis >= 10000) {
-//     postPreviousMillis = currentMillis;
-//     HTTPClient http;
-
-//     String serverPath = serverSchedule; 
-    
-//     // Your Domain name with URL path or IP address with path
-//     http.begin(serverPath.c_str());
-//     http.addHeader("Content-Type", "application/json");
-    
-//     // If you need Node-RED/server authentication, insert user and password below
-//     //http.setAuthorization("REPLACE_WITH_SERVER_USERNAME", "REPLACE_WITH_SERVER_PASSWORD");
-//     StaticJsonDocument<200> doc;
-//     // Add values in the document
-//     //
-//     doc["device_id"] = DEVICE_ID;
-
-//     String requestBody;
-//     serializeJson(doc, requestBody);
-    
-//     int httpResponseCode = http.POST(requestBody);
+    int httpResponseCode = http.POST(requestBody);
 
     
-//     if (httpResponseCode>0) {
-//       Serial.print("HTTP Response code: ");
-//       Serial.println(httpResponseCode);
-//       String payload = http.getString();
-//       Serial.println(payload);
-//     }
-//     else {
-//       Serial.print("Error code: ");
-//       Serial.println(httpResponseCode);
-//     }
-//     // Free resources
-//     http.end();
-//   }
-// }
+    if (httpResponseCode>0) {
+      Serial.print("HTTP Response code: ");
+      Serial.println(httpResponseCode);
+      String payload = http.getString();
+      Serial.println(payload);
+    }
+    else {
+      Serial.print("Error code: ");
+      Serial.println(httpResponseCode);
+    }
+    // Free resources
+    http.end();
+  }
+}
+
+
+
+void retrieveSchedule(void)
+{
+   if(currentMillis - postInfoPreviousMillis >= 10000) {
+   postInfoPreviousMillis = currentMillis;
+    HTTPClient http;
+
+    String serverPath = serverSchedule; 
+    
+    // Your Domain name with URL path or IP address with path
+    http.begin(serverPath.c_str());
+    http.addHeader("Content-Type", "application/json");
+    
+    // If you need Node-RED/server authentication, insert user and password below
+    //http.setAuthorization("REPLACE_WITH_SERVER_USERNAME", "REPLACE_WITH_SERVER_PASSWORD");
+    StaticJsonDocument<200> doc;
+    // Add values in the document
+    //
+    doc["device_id"] = DEVICE_ID;
+
+    String requestBody;
+    serializeJson(doc, requestBody);
+    
+    int httpResponseCode = http.POST(requestBody);
+
+    
+    if (httpResponseCode>0) {
+      Serial.print("HTTP Response code: ");
+      Serial.println(httpResponseCode);
+      String payload = http.getString();
+      Serial.println(payload);
+    }
+    else {
+      Serial.print("Error code: ");
+      Serial.println(httpResponseCode);
+    }
+    // Free resources
+    http.end();
+  }
+}
 
 // 'New Piskel-1', 47x47px
 const unsigned char epd_bitmap_New_Piskel_1 [] PROGMEM = {
@@ -933,7 +932,7 @@ void setup(void)
    * NOTE: configTime() function call if made AFTER DHCP-client run
    * will OVERRIDE aquired NTP server address
    */
-  sntp_servermode_dhcp(1);    // (optional)
+  //sntp_servermode_dhcp(1);    // (optional)
 
   /**
    * This will set configured ntp servers and constant TimeZone/daylightOffset
@@ -958,7 +957,7 @@ void setup(void)
 
   // reset settings - wipe stored credentials for testing
   // these are stored by the esp library
-  // wm.resetSettings();                         // ---------------- UNCOMMENT THIS TO RESET THE WIFI AND REQUIRE AP CREDENTIALS AGAIN (FOR TESTING)
+  //wm.resetSettings();                         // ---------------- UNCOMMENT THIS TO RESET THE WIFI AND REQUIRE AP CREDENTIALS AGAIN (FOR TESTING)
 
   bool res;
     // res = wm.autoConnect(); // auto generated AP name from chipid
@@ -1046,8 +1045,6 @@ void setup(void)
 void loop(void) 
 {
 
-  //int postDelay = 10000;
-
   currentMillis = millis();
 
   if(currentMillis - animationPreviousMillis >= animationDelay) {
@@ -1061,7 +1058,6 @@ void loop(void)
       k = 0;
     }
   }
-
 
 
   if(currentMillis - readingPreviousMillis >= readingDelay) {
@@ -1108,49 +1104,9 @@ void loop(void)
   }
 
 
-  if(currentMillis - postPreviousMillis >= 60000) {
-    postPreviousMillis = currentMillis;
-    HTTPClient http;
+  postData();
 
-    String serverPath = serverName; 
-    
-    // Your Domain name with URL path or IP address with path
-    http.begin(serverPath.c_str());
-    http.addHeader("Content-Type", "application/json");
-    
-    // If you need Node-RED/server authentication, insert user and password below
-    //http.setAuthorization("REPLACE_WITH_SERVER_USERNAME", "REPLACE_WITH_SERVER_PASSWORD");
-    StaticJsonDocument<200> doc;
-    // Add values in the document
-    //
-    doc["user_id"] = 5;
-    doc["temperature"] = temperatureVal;
-    doc["plant1_name"] = myPlant1.name;
-    doc["plant1_moisture"] = moisture;
-    doc["plant2_name"] = myPlant2.name;
-    doc["plant2_moisture"] = moisture2;
-    
-    String requestBody;
-    serializeJson(doc, requestBody);
-    
-    int httpResponseCode = http.POST(requestBody);
-
-    
-    if (httpResponseCode>0) {
-      Serial.print("HTTP Response code: ");
-      Serial.println(httpResponseCode);
-      String payload = http.getString();
-      Serial.println(payload);
-    }
-    else {
-      Serial.print("Error code: ");
-      Serial.println(httpResponseCode);
-    }
-    // Free resources
-    http.end();
-  }
-
-  //retrieveSchedule();
+  retrieveSchedule();
 
   u8g2.clearBuffer();
 
@@ -1253,7 +1209,6 @@ void loop(void)
     myPlant2.plantState = 3;
   }
 
-
   u8g2.sendBuffer();
 
   if(running == true && selector == 1) {
@@ -1274,9 +1229,6 @@ void loop(void)
   {
     waterEnd();
   }
-
-
-
 
   diffState = false;
 }
