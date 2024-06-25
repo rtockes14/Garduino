@@ -149,7 +149,7 @@ struct tm timeinfo;
 DHT dht(sensorPin3, DHTTYPE);
 
 char DaysoftheWeek[7][5] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
-//char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
+char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
 
 plantNumber myPlant1 = {"1: Ivy", 3, 25, false, 2};
 plantNumber myPlant2 = {"2: Azalea", 6, 60, false, 2};
@@ -316,6 +316,7 @@ void waterStart(void)
   }
   if(wateringState == true && selector == 1)
   {
+    // Low is active
     digitalWrite(Relay_1, LOW);
     digitalWrite(Relay_2, LOW);
     digitalWrite(Relay_3, LOW);
@@ -702,10 +703,60 @@ void menuStateReturn(void)
   }
 }
 
+void retrieveSchedule(void)
+{
+  //  if(currentMillis - postInfoPreviousMillis >= 10000) {
+  //  postInfoPreviousMillis = currentMillis;
+    HTTPClient http;
+
+    String serverPath = serverSchedule; 
+    
+    // Your Domain name with URL path or IP address with path
+    http.begin(serverPath.c_str());
+    http.addHeader("Content-Type", "application/json");
+    
+    // If you need Node-RED/server authentication, insert user and password below
+    //http.setAuthorization("REPLACE_WITH_SERVER_USERNAME", "REPLACE_WITH_SERVER_PASSWORD");
+    StaticJsonDocument<200> doc;
+    // Add values in the document
+    
+    doc["device_id"] = DEVICE_ID;
+
+    String requestBody;
+    serializeJson(doc, requestBody);
+    
+    int httpResponseCode = http.POST(requestBody);
+
+    if (httpResponseCode>0) {
+      Serial.print("HTTP Response code: ");
+      Serial.println(httpResponseCode);
+      //String payload = http.getString();
+      deserializeJson(doc, http.getString());
+
+      String nextDay = doc["Plant_name"];
+      int nextHour = doc["Hour"];
+      int nextMinute = doc["Minute"];
+      int nextAmount = doc["Amount"];
+      //Serial.println(payload);
+      //Serial.println(doc);
+      Serial.println(nextDay);
+      Serial.println(nextHour);
+      Serial.println(nextMinute);
+      Serial.println(nextAmount);
+      Serial.println("\n");
+    }
+    else {
+      Serial.print("Error code 2: ");
+      Serial.println(httpResponseCode);
+    }
+    // Free resources
+    http.end();
+  // }
+}
 
 void postData(void)
 {
-   if(currentMillis - postPreviousMillis >= 60000) {
+   if(currentMillis - postPreviousMillis >= 300000) {
      postPreviousMillis = currentMillis;
     HTTPClient http;
 
@@ -719,7 +770,7 @@ void postData(void)
     //http.setAuthorization("REPLACE_WITH_SERVER_USERNAME", "REPLACE_WITH_SERVER_PASSWORD");
     StaticJsonDocument<200> doc;
     // Add values in the document
-    //
+    
     doc["user_id"] = 5;
     doc["temperature"] = temperatureVal;
     doc["plant1_name"] = myPlant1.name;
@@ -740,55 +791,20 @@ void postData(void)
       Serial.println(payload);
     }
     else {
-      Serial.print("Error code: ");
+      Serial.print("Error code 1: ");
       Serial.println(httpResponseCode);
     }
+
+    
     // Free resources
     http.end();
+
+    retrieveSchedule();
+
   }
 }
 
 
-
-void retrieveSchedule(void)
-{
-   if(currentMillis - postInfoPreviousMillis >= 10000) {
-   postInfoPreviousMillis = currentMillis;
-    HTTPClient http;
-
-    String serverPath = serverSchedule; 
-    
-    // Your Domain name with URL path or IP address with path
-    http.begin(serverPath.c_str());
-    http.addHeader("Content-Type", "application/json");
-    
-    // If you need Node-RED/server authentication, insert user and password below
-    //http.setAuthorization("REPLACE_WITH_SERVER_USERNAME", "REPLACE_WITH_SERVER_PASSWORD");
-    StaticJsonDocument<200> doc;
-    // Add values in the document
-    //
-    doc["device_id"] = DEVICE_ID;
-
-    String requestBody;
-    serializeJson(doc, requestBody);
-    
-    int httpResponseCode = http.POST(requestBody);
-
-    
-    if (httpResponseCode>0) {
-      Serial.print("HTTP Response code: ");
-      Serial.println(httpResponseCode);
-      String payload = http.getString();
-      Serial.println(payload);
-    }
-    else {
-      Serial.print("Error code: ");
-      Serial.println(httpResponseCode);
-    }
-    // Free resources
-    http.end();
-  }
-}
 
 // 'New Piskel-1', 47x47px
 const unsigned char epd_bitmap_New_Piskel_1 [] PROGMEM = {
@@ -950,24 +966,24 @@ void setup(void)
 
   //connect to WiFi
   //Serial.printf("Connecting to %s ", ssid);
-  //WiFi.begin(ssid, password);
+  WiFi.begin(ssid, password);
 
   //WiFiManager, Local intialization. Once its business is done, there is no need to keep it around
-  WiFiManager wm;
+  //WiFiManager wm;
 
   // reset settings - wipe stored credentials for testing
   // these are stored by the esp library
   //wm.resetSettings();                         // ---------------- UNCOMMENT THIS TO RESET THE WIFI AND REQUIRE AP CREDENTIALS AGAIN (FOR TESTING)
 
-  bool res;
+  //bool res;
     // res = wm.autoConnect(); // auto generated AP name from chipid
     // res = wm.autoConnect("AutoConnectAP"); // anonymous ap
-    res = wm.autoConnect("Garduino","swordfish"); // password protected ap
+    //res = wm.autoConnect("Garduino","swordfish"); // password protected ap
 
-    if(!res) {
-        Serial.println("Failed to connect");
+    //if(!res) {
+        //Serial.println("Failed to connect");
         // ESP.restart();
-    }
+    //}
   while (WiFi.status() != WL_CONNECTED) {
       delay(500);
       Serial.print(".");
@@ -986,10 +1002,6 @@ void setup(void)
 
   dht.begin();
 
-
-	//lcd.begin();
-
-  //lcd.print("Stonk Prices v1");
   delay(500);
 
   pinMode(RED, OUTPUT);
@@ -1106,7 +1118,7 @@ void loop(void)
 
   postData();
 
-  retrieveSchedule();
+  //retrieveSchedule();
 
   u8g2.clearBuffer();
 
