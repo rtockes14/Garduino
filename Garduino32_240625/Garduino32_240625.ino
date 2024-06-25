@@ -85,7 +85,8 @@ U8G2_SSD1309_128X64_NONAME0_F_4W_HW_SPI u8g2(U8G2_R0, /* cs=*/ 15, /* dc=*/ 32, 
 
 struct plantNumber
 {
-  char name[12];
+  //char name[12];
+  String name;
   int DayNumber;
   int hour;
   int minute;
@@ -501,8 +502,8 @@ void multibox(void)
 
   u8g2.setFontMode(2);
   u8g2.setDrawColor(2);
-  u8g2.drawStr(4, 50, myPlant1.name);
-  u8g2.drawStr(68, 50, myPlant2.name);
+  u8g2.drawStr(4, 50, myPlant1.name.c_str());
+  u8g2.drawStr(68, 50, myPlant2.name.c_str());
 
   u8g2_lastWater();
 
@@ -543,7 +544,7 @@ void singleBoxBig(int counter, byte k)
   {
     u8g2.setFontMode(2);
     u8g2.setDrawColor(2);
-    u8g2.drawStr(4, 50, myPlant1.name);
+    u8g2.drawStr(4, 50, myPlant1.name.c_str());
     u8g2.drawStr(69, 50, buffer);
    //u8g2.drawStr(115, 45, moisture_buffer);
 
@@ -580,7 +581,7 @@ void singleBoxBig(int counter, byte k)
   {
     u8g2.setFontMode(2);
     u8g2.setDrawColor(2);
-    u8g2.drawStr(4, 50, myPlant2.name);
+    u8g2.drawStr(4, 50, myPlant2.name.c_str());
     u8g2.drawStr(69, 50, buffer);
 
     if(myPlant2.plantState == 1)
@@ -705,12 +706,30 @@ void menuStateReturn(void)
   }
 }
 
-void updatePlantSchedule(String plantName, int nextDay, int nextHour, int nextMinute, int amount)
+int updatePlantSchedule(String plantName, int nextDay, int nextHour, int nextMinute, int amount)
 {
-  myPlant1.DayNumber = nextDay;
-  myPlant1.hour = nextHour;
-  myPlant1.minute = nextMinute;
-  myPlant1.mL = amount;
+  Serial.println(plantName);
+  Serial.println(myPlant1.name);
+  
+  if (plantName == myPlant1.name)
+  {
+    Serial.println("Plant 1 info updated");
+    myPlant1.DayNumber = nextDay;
+    myPlant1.hour = nextHour;
+    myPlant1.minute = nextMinute;
+    myPlant1.mL = amount;
+  }
+  else if (plantName == myPlant2.name)
+  {
+    Serial.println("Plant 2 info updated");
+    myPlant2.DayNumber = nextDay;
+    myPlant2.hour = nextHour;
+    myPlant2.minute = nextMinute;
+    myPlant2.mL = amount;
+  }
+  else{
+    return -1;
+  }
 }
 
 void retrieveSchedule(void)
@@ -720,6 +739,8 @@ void retrieveSchedule(void)
     HTTPClient http;
 
     String serverPath = serverSchedule; 
+
+    int updateConfirm = 0;
     
     // Your Domain name with URL path or IP address with path
     http.begin(serverPath.c_str());
@@ -750,10 +771,15 @@ void retrieveSchedule(void)
       int nextAmount = doc["Amount"];
       //Serial.println(payload);
       //Serial.println(doc);
+      Serial.println(plantName);
       Serial.println(nextDay);
       Serial.println(nextHour);
       Serial.println(nextMinute);
       Serial.println(nextAmount);
+      Serial.println("\n");
+
+      updateConfirm = updatePlantSchedule(plantName, nextDay, nextHour, nextMinute, nextAmount);
+      Serial.print(updateConfirm);
       Serial.println("\n");
     }
     else {
@@ -767,7 +793,7 @@ void retrieveSchedule(void)
 
 void postData(void)
 {
-   if(currentMillis - postPreviousMillis >= 300000) {
+   if(currentMillis - postPreviousMillis >= 10000) {           //300000 for every 5 min
      postPreviousMillis = currentMillis;
     HTTPClient http;
 
