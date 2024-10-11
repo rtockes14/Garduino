@@ -123,6 +123,7 @@ bool wateringState = false;
 bool manualTrigger = false;
 bool running = false;
 bool flashing = false;
+bool initSetup = false;
 char buffer[18];
 
 float moisture = 0;
@@ -151,11 +152,11 @@ struct tm timeinfo;
 
 DHT dht(sensorPin3, DHTTYPE);
 
-char DaysoftheWeek[7][5] = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
-char daysOfTheWeek[7][12] = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"};
+char DaysoftheWeek[8][5] = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun", "N/A"};
+char daysOfTheWeek[8][12] = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday", "N/A"};
 
-plantNumber myPlant1 = {"1: Ivy", 3, 12, 0, 50, false, 3};
-plantNumber myPlant2 = {"2: Azalea", 6, 10, 30, 150, false, 3};
+plantNumber myPlant1 = {"1:", 7, 0, 0, 0, false, 3};
+plantNumber myPlant2 = {"2:", 7, 0, 0, 0, false, 3};
 
 // ====================================================================================================================================
 
@@ -550,19 +551,19 @@ void singleBoxBig(int counter, byte k)
 
     if(myPlant1.plantState == 1)
     {
-      u8g2.drawStr(64, 25, "DRY");
+      u8g2.drawStr(84, 25, "DRY");
     }
     else if(myPlant1.plantState == 2)
     {
-      u8g2.drawStr(64, 25, "FAIR");
+      u8g2.drawStr(84, 25, "FAIR");
     }
     else if(myPlant1.plantState == 4)
     {
-      u8g2.drawStr(64, 25, "WET");
+      u8g2.drawStr(84, 25, "WET");
     }
     else
     {
-      u8g2.drawStr(61, 25, "GOOD");
+      u8g2.drawStr(81, 25, "GOOD");
     }
 
     u8g2.setFont(u8g2_font_fub20_tr);
@@ -572,7 +573,14 @@ void singleBoxBig(int counter, byte k)
     u8g2.setFont(u8g2_font_profont11_mf);
     u8g2.setFontMode(1);
     u8g2.setDrawColor(1);
-    u8g2.drawStr(60, 36, "mL");
+    if (myPlant1.mL < 100)
+    {
+      u8g2.drawStr(60, 36, "mL");
+    }
+    else
+    {
+      u8g2.drawStr(80, 36, "mL");
+    }
     u8g2_lastWater();
     u8g2.drawFrame(114, 4, 10, 42);
     
@@ -586,19 +594,19 @@ void singleBoxBig(int counter, byte k)
 
     if(myPlant2.plantState == 1)
     {
-      u8g2.drawStr(64, 25, "DRY");
+      u8g2.drawStr(84, 25, "DRY");
     }
     else if(myPlant2.plantState == 2)
     {
-      u8g2.drawStr(64, 25, "FAIR");
+      u8g2.drawStr(84, 25, "FAIR");
     }
     else if(myPlant2.plantState == 4)
     {
-      u8g2.drawStr(61, 25, "WET");
+      u8g2.drawStr(81, 25, "WET");
     }
     else
     {
-      u8g2.drawStr(61, 25, "GOOD");
+      u8g2.drawStr(81, 25, "GOOD");
     }
 
     u8g2.setFont(u8g2_font_fub20_tr);
@@ -608,7 +616,14 @@ void singleBoxBig(int counter, byte k)
     u8g2.setFont(u8g2_font_profont11_mf);
     u8g2.setFontMode(1);
     u8g2.setDrawColor(1);
-    u8g2.drawStr(60, 36, "mL");
+    if (myPlant2.mL < 100)
+    {
+      u8g2.drawStr(60, 36, "mL");
+    }
+    else
+    {
+      u8g2.drawStr(80, 36, "mL");
+    }
     u8g2_lastWater();
     u8g2.drawFrame(114, 4, 10, 42);
   }
@@ -709,19 +724,21 @@ void menuStateReturn(void)
 int updatePlantSchedule(String plantName, int nextDay, int nextHour, int nextMinute, int amount)
 {
   Serial.println(plantName);
-  Serial.println(myPlant1.name);
-  
-  if (plantName == myPlant1.name)
+
+
+  if (plantName[0] == myPlant1.name[0])
   {
     Serial.println("Plant 1 info updated");
+    myPlant1.name = plantName;
     myPlant1.DayNumber = nextDay;
     myPlant1.hour = nextHour;
     myPlant1.minute = nextMinute;
     myPlant1.mL = amount;
   }
-  else if (plantName == myPlant2.name)
+  else if (plantName[0] == myPlant2.name[0])
   {
     Serial.println("Plant 2 info updated");
+    myPlant2.name = plantName;
     myPlant2.DayNumber = nextDay;
     myPlant2.hour = nextHour;
     myPlant2.minute = nextMinute;
@@ -730,6 +747,7 @@ int updatePlantSchedule(String plantName, int nextDay, int nextHour, int nextMin
   else{
     return -1;
   }
+  return 0;
 }
 
 void retrieveSchedule(void)
@@ -740,7 +758,8 @@ void retrieveSchedule(void)
 
     String serverPath = serverSchedule; 
 
-    int updateConfirm = 0;
+    int update1Confirm = 0;
+    int update2Confirm = 0;
     
     // Your Domain name with URL path or IP address with path
     http.begin(serverPath.c_str());
@@ -764,11 +783,17 @@ void retrieveSchedule(void)
       //String payload = http.getString();
       deserializeJson(doc, http.getString());
 
-      String plantName = doc["Plant_name"];
-      int nextDay = doc["Day"];
-      int nextHour = doc["Hour"];
-      int nextMinute = doc["Minute"];
-      int nextAmount = doc["Amount"];
+      String plantName = doc["Plant1"]["Plant_name"];
+      int nextDay = doc["Plant1"]["Day"];
+      int nextHour = doc["Plant1"]["Hour"];
+      int nextMinute = doc["Plant1"]["Minute"];
+      int nextAmount = doc["Plant1"]["Amount"];
+
+      String plant2Name = doc["Plant2"]["Plant_name"];
+      int plant2_nextDay = doc["Plant2"]["Day"];
+      int plant2_nextHour = doc["Plant2"]["Hour"];
+      int plant2_nextMinute = doc["Plant2"]["Minute"];
+      int plant2_nextAmount = doc["Plant2"]["Amount"];
       //Serial.println(payload);
       //Serial.println(doc);
       Serial.println(plantName);
@@ -778,8 +803,11 @@ void retrieveSchedule(void)
       Serial.println(nextAmount);
       Serial.println("\n");
 
-      updateConfirm = updatePlantSchedule(plantName, nextDay, nextHour, nextMinute, nextAmount);
-      Serial.print(updateConfirm);
+      update1Confirm = updatePlantSchedule(plantName, nextDay, nextHour, nextMinute, nextAmount);
+      update2Confirm = updatePlantSchedule(plant2Name, plant2_nextDay, plant2_nextHour, plant2_nextMinute, plant2_nextAmount);
+
+      Serial.print(update1Confirm);
+      Serial.println(update2Confirm);
       Serial.println("\n");
     }
     else {
@@ -793,8 +821,10 @@ void retrieveSchedule(void)
 
 void postData(void)
 {
-   if(currentMillis - postPreviousMillis >= 10000) {           //300000 for every 5 min
-     postPreviousMillis = currentMillis;
+  
+   if(currentMillis - postPreviousMillis >= 300000 || initSetup == false) {           //300000 for every 5 min
+    postPreviousMillis = currentMillis;
+    colorSelect('r');
     HTTPClient http;
 
     String serverPath = serverName; 
@@ -807,36 +837,39 @@ void postData(void)
     //http.setAuthorization("REPLACE_WITH_SERVER_USERNAME", "REPLACE_WITH_SERVER_PASSWORD");
     StaticJsonDocument<200> doc;
     // Add values in the document
-    
-    doc["user_id"] = 5;
-    doc["temperature"] = temperatureVal;
-    doc["plant1_name"] = myPlant1.name;
-    doc["plant1_moisture"] = moisture;
-    doc["plant2_name"] = myPlant2.name;
-    doc["plant2_moisture"] = moisture2;
-    
-    String requestBody;
-    serializeJson(doc, requestBody);
-    
-    int httpResponseCode = http.POST(requestBody);
+    if(myPlant1.name != "N/A")
+    {
+      doc["user_id"] = 5;
+      doc["temperature"] = temperatureVal;
+      doc["plant1_name"] = myPlant1.name;
+      doc["plant1_moisture"] = moisture;
+      doc["plant2_name"] = myPlant2.name;
+      doc["plant2_moisture"] = moisture2;
+      
+      String requestBody;
+      serializeJson(doc, requestBody);
+      
+      int httpResponseCode = http.POST(requestBody);
 
-    
-    if (httpResponseCode>0) {
-      Serial.print("HTTP Response code: ");
-      Serial.println(httpResponseCode);
-      String payload = http.getString();
-      Serial.println(payload);
-    }
-    else {
-      Serial.print("Error code 1: ");
-      Serial.println(httpResponseCode);
-    }
+      
+      if (httpResponseCode>0) {
+        Serial.print("HTTP Response code: ");
+        Serial.println(httpResponseCode);
+        String payload = http.getString();
+        Serial.println(payload);
+      }
+      else {
+        Serial.print("Error code 1: ");
+        Serial.println(httpResponseCode);
+      }
 
-    
+    }
     // Free resources
     http.end();
 
     retrieveSchedule();
+    
+    colorSelect('o');
 
   }
 }
@@ -1081,6 +1114,10 @@ void setup(void)
   lastStateCLK = digitalRead(CLK);
 
   Serial.begin(115200);
+
+  postData();
+  
+  initSetup = true;
 
 
 }
