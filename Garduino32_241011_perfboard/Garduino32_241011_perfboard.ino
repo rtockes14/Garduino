@@ -326,12 +326,11 @@ void waterStart(void)
 {
   if(running == true)
   {
-    //return;
+    buzz();//return;
   }
   if(wateringState == true && selector == 1)
   {
     // Low is active
-    buzz();
     digitalWrite(Relay_1, LOW);
     digitalWrite(Relay_2, LOW);
     digitalWrite(Relay_3, LOW);
@@ -339,7 +338,6 @@ void waterStart(void)
   }
   else if (wateringState == true && selector == 2) 
   {
-    buzz();
     digitalWrite(Relay_1, LOW);
     digitalWrite(Relay_2, HIGH);
     digitalWrite(Relay_3, LOW);
@@ -1107,7 +1105,7 @@ void setup(void)
 
   colorSelect('g');
 
-  pinMode(SW, INPUT);       // Enable the switchPin as input 
+  pinMode(SW, INPUT_PULLUP);       // Enable the switchPin as input 
   pinMode(DT, INPUT);                   // Set PinA as input
   pinMode(CLK, INPUT);                   // Set PinB as input
 
