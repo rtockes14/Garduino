@@ -16,14 +16,8 @@
 #include <SPI.h>
 #endif
 
-//#define SPI_MOSI  23
-//#define SPI_MISO 19
-//#define SPI_SCK 18
-//#define SD_CS  5
-
-
 // define pins
-#define BLUE 27
+#define BLUE 17
 #define RED 25
 #define GREEN 26
 
@@ -31,10 +25,10 @@
 
 #define PUMP 4 //
 
-#define Relay_1 14 // V
-#define Relay_2 27
-#define Relay_3 33
-#define Relay_4 2 // ^
+#define Relay_1 33 // Pump
+//#define Relay_2 2
+#define Relay_3 14 // Azalea
+#define Relay_4 27 // Ivy
 
 #define CLK 21
 #define DT 22
@@ -187,7 +181,7 @@ void printLocalTime(void)
   puts(buffer);
 
   int val = atoi(buffer);
-  printf("This %d simple \t", val);
+  printf("--- %d --- \t", val);
 
   // if the time is between 11:59:53PM and 6secs later(for readtime) reset watered today bool check
   if (val >= 235953 && val <= 235959)
@@ -327,28 +321,35 @@ void waterStart(void)
   if(running == true)
   {
     buzz();//return;
+    Serial.println("Running cycle");
   }
   if(wateringState == true && selector == 1)
   {
     // Low is active
     digitalWrite(Relay_1, LOW);
-    digitalWrite(Relay_2, LOW);
-    digitalWrite(Relay_3, LOW);
+    //digitalWrite(Relay_2, HIGH);
+    digitalWrite(Relay_3, HIGH);
     digitalWrite(Relay_4, LOW);
+    Serial.println("Watering Ivy\n");
   }
   else if (wateringState == true && selector == 2) 
   {
     digitalWrite(Relay_1, LOW);
-    digitalWrite(Relay_2, HIGH);
+    //digitalWrite(Relay_2, HIGH);
     digitalWrite(Relay_3, LOW);
     digitalWrite(Relay_4, HIGH);
+    Serial.println("Watering Azalea\n");
   }
   else 
   {
-    digitalWrite(Relay_1, HIGH);
-    digitalWrite(Relay_2, LOW);
+    digitalWrite(Relay_1, LOW);
+    //digitalWrite(Relay_2, HIGH);
     digitalWrite(Relay_3, LOW);
     digitalWrite(Relay_4, HIGH);
+    Serial.print("Something aint working\n");
+    Serial.println(selector);
+    Serial.println(wateringState);
+
     
   }
 }
@@ -356,7 +357,7 @@ void waterStart(void)
 void waterEnd(void)
 {
   digitalWrite(Relay_1, HIGH);
-  digitalWrite(Relay_2, HIGH);
+  //digitalWrite(Relay_2, HIGH);
   digitalWrite(Relay_3, HIGH);
   digitalWrite(Relay_4, HIGH);
 
@@ -369,8 +370,9 @@ void checkPlantState(void)  //=============================================
     selector = 1;
     menuState = true;
     wateringState = true;
-    if(!myPlant1.wateredToday || manualTrigger)
+    if(!myPlant1.wateredToday)
     {
+      //wateringState = true;
       waterStart();
       delay(wateringDelay1);
       wateringState = false;
@@ -386,8 +388,9 @@ void checkPlantState(void)  //=============================================
     selector = 2;
     menuState = true;
     wateringState = true;
-    if(!myPlant2.wateredToday || manualTrigger)
+    if(!myPlant2.wateredToday)
     {
+      //wateringState = true;
       waterStart();
       delay(wateringDelay2);
       wateringState = false;
@@ -459,7 +462,32 @@ void multibox(void)
   colorSelect('g');
   u8g2.drawRFrame(1, 1, 62, 62, 3);
   u8g2.drawRFrame(65, 1, 62, 62, 3);
+
+  char plant1Schedule[15];
+  char plant2Schedule[15];
   //u8g2.setDrawColor(2);
+
+  if(myPlant1.minute < 10)
+  {
+    sprintf(plant1Schedule, "%d:0%d", myPlant1.hour, myPlant1.minute);
+  }
+  else
+  {
+    sprintf(plant1Schedule, "%d:%d", myPlant1.hour, myPlant1.minute);
+  }
+
+  if(myPlant2.minute < 10)
+  {
+    sprintf(plant2Schedule, "%d:0%d", myPlant2.hour, myPlant2.minute);
+  }
+  else
+  {
+    sprintf(plant2Schedule, "%d:%d", myPlant2.hour, myPlant2.minute);
+  }
+
+    u8g2.drawStr(30, 16, plant1Schedule);
+    u8g2.drawStr(93, 16, plant2Schedule);
+
   if (selector == 1)
   {
     u8g2.drawRBox(1, 48, BOX_WIDTH, BOX_HEIGHT, 3);
@@ -478,36 +506,36 @@ void multibox(void)
 
   if(myPlant1.plantState == 1)
     {
-      u8g2.drawStr(35, 25, "DRY");
+      u8g2.drawStr(35, 35, "DRY");
     }
     else if(myPlant1.plantState == 2)
     {
-      u8g2.drawStr(34, 25, "FAIR");
+      u8g2.drawStr(34, 35, "FAIR");
     }
     else if(myPlant1.plantState == 4)
     {
-      u8g2.drawStr(35, 25, "WET");
+      u8g2.drawStr(35, 35, "WET");
     }
     else
     {
-      u8g2.drawStr(32, 25, "GOOD");
+      u8g2.drawStr(32, 35, "GOOD");
     }
 
     if(myPlant2.plantState == 1)
     {
-      u8g2.drawStr(98, 25, "DRY");
+      u8g2.drawStr(98, 35, "DRY");
     }
     else if(myPlant2.plantState == 2)
     {
-      u8g2.drawStr(97, 25, "FAIR");
+      u8g2.drawStr(97, 35, "FAIR");
     }
     else if(myPlant2.plantState == 4)
     {
-      u8g2.drawStr(98, 25, "WET");
+      u8g2.drawStr(98, 35, "WET");
     }
     else
     {
-      u8g2.drawStr(95, 25, "GOOD");
+      u8g2.drawStr(95, 35, "GOOD");
     }
 
 
@@ -698,27 +726,36 @@ void startCycleActive(int counter, int counter2, byte k)
   if(selector == 1)
   {
     u8g2.drawBox(114, 46 - counter, 9, counter);
-    //wateringState = true;
+    // u8g2.setFontMode(2);
+    // u8g2.setDrawColor(2);
+    // u8g2.drawStr(50, 6, "STOP");
     manualTrigger = true;
     running = true;
     colorSelect('b');
+    wateringState = true;
     waterStart();
+
+
     
   }
   if(selector == 2)
   {
     u8g2.drawBox(114, 46 - counter2, 9, counter);
-    //wateringState = true;
+
     manualTrigger = true;
     running = true;
     colorSelect('b');
+    wateringState = true;
     waterStart();
+
     
   }
 
-  u8g2.setFontMode(2);
-  u8g2.setDrawColor(2);
-  u8g2.drawStr(50, 6, "STOP");
+    u8g2.setFontMode(2);
+    u8g2.setDrawColor(2);
+    u8g2.drawStr(50, 6, "STOP");
+
+
 }
 
 
@@ -734,7 +771,6 @@ void menuStateReturn(void)
 int updatePlantSchedule(String plantName, int nextDay, int nextHour, int nextMinute, int amount)
 {
   Serial.println(plantName);
-
 
   if (plantName[0] == myPlant1.name[0])
   {
@@ -813,6 +849,13 @@ void retrieveSchedule(void)
       Serial.println(nextAmount);
       Serial.println("\n");
 
+      Serial.println(plant2Name);
+      Serial.println(plant2_nextDay);
+      Serial.println(plant2_nextHour);
+      Serial.println(plant2_nextMinute);
+      Serial.println(plant2_nextAmount);
+      Serial.println("\n");
+
       update1Confirm = updatePlantSchedule(plantName, nextDay, nextHour, nextMinute, nextAmount);
       update2Confirm = updatePlantSchedule(plant2Name, plant2_nextDay, plant2_nextHour, plant2_nextMinute, plant2_nextAmount);
 
@@ -832,7 +875,7 @@ void retrieveSchedule(void)
 void postData(void)
 {
   
-   if(currentMillis - postPreviousMillis >= 300000 || initSetup == false) {           //300000 for every 5 min
+   if(currentMillis - postPreviousMillis >= 900000 || initSetup == false) {           //300000 for every 5 min      
     postPreviousMillis = currentMillis;
     colorSelect('r');
     HTTPClient http;
@@ -1113,12 +1156,12 @@ void setup(void)
   //pinMode(sensorPin2, INPUT);
 
   pinMode(Relay_1, OUTPUT);               // Pump
-  pinMode(Relay_2, OUTPUT);               // Solenoid 1
+  //pinMode(Relay_2, OUTPUT);               // Solenoid 1
   pinMode(Relay_3, OUTPUT);               // Solenoid 2
   pinMode(Relay_4, OUTPUT);  
   
   digitalWrite(Relay_1, HIGH);
-  digitalWrite(Relay_2, HIGH);
+  //digitalWrite(Relay_2, HIGH);
   digitalWrite(Relay_3, HIGH);
   digitalWrite(Relay_4, HIGH);
 
@@ -1174,18 +1217,23 @@ void loop(void)
     uint32_t readings2 = 0;
 
     // take 5 readings
-    for(int i = 0; i < 5; i++)
-    {
-      readings1 = readings1 + analogRead(sensorPin);
-      readings2 = readings2 + analogRead(sensorPin2);
-    }
-    int sensorVal1 = readings1 / 5; // average the last 5 readings;
-    int sensorVal2 = readings2 / 5; 
+    // for(int i = 0; i < 5; i++)
+    // {
+    //   readings1 = readings1 + analogRead(sensorPin);
+    //   readings2 = readings2 + analogRead(sensorPin2);
+    // }
 
-    temperatureVal = dht.readTemperature(true);
 
-    moisture = map(sensorVal1,  1000, 3000, 100, 0);
-    moisture2 = map(sensorVal2, 1000, 3000, 100, 0);
+    // int sensorVal1 = readings1 / 5; // average the last 5 readings;
+    // int sensorVal2 = readings2 / 5; 
+
+    int sensorVal1 = analogRead(sensorPin);
+    int sensorVal2 = analogRead(sensorPin2);
+
+    //temperatureVal = dht.readTemperature(true);
+
+    moisture = map(sensorVal1,  1000, 2500, 100, 0);
+    moisture2 = map(sensorVal2, 1000, 2500, 100, 0);
     
     Serial.print(sensorVal1);
     Serial.print("\t");
@@ -1195,8 +1243,8 @@ void loop(void)
     Serial.print("\t");
     Serial.print(moisture2);
     Serial.print("\t");
-    Serial.print(temperatureVal);
-    Serial.print("\n");
+    //Serial.print(temperatureVal);
+    //Serial.print("\n");
 
 
     printLocalTime();     // it will take some time to sync time :)
